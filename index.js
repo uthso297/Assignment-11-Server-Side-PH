@@ -30,6 +30,7 @@ async function run() {
 
         const database = client.db("libraryDB");
         const booksColllection = database.collection("books");
+        const borrowColllection = database.collection("borrowedBooks");
 
         app.get('/allBooks', async (req, res) => {
             const cursor = booksColllection.find();
@@ -46,6 +47,7 @@ async function run() {
 
         app.post('/allBooks', async (req, res) => {
             const newBook = req.body;
+            newBook.quantity = Number(newBook.quantity);
             console.log(newBook)
             const result = await booksColllection.insertOne(newBook)
             res.send(result)
@@ -60,7 +62,7 @@ async function run() {
                 $set: {
                     image: updatedBook.image,
                     title: updatedBook.title,
-                    quantity: updatedBook.quantity,
+                    quantity: Number(updatedBook.quantity),
                     author: updatedBook.author,
                     category: updatedBook.category,
                     short_description: updatedBook.short_description,
@@ -73,6 +75,38 @@ async function run() {
             res.send(result)
         })
 
+
+        app.post('/allBooks/:id/borrow', async (req, res) => {
+            const id = req.params.id;
+            console.log(id)
+            try {
+                const result = await booksColllection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $inc: { quantity: -1 } }
+                );
+                res.send(result)
+
+            } catch (error) {
+                res.status(500).send('Error borrowing book.');
+                console.log(error)
+            }
+        });
+
+        app.get('/borrow', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const cursor = borrowColllection.find(query);
+            const result = await cursor.toArray();
+            res.send(result)
+        })
+
+        app.post('/borrow', async (req, res) => {
+            const userInfoWithBook = req.body;
+            console.log(userInfoWithBook)
+            const result = await borrowColllection.insertOne(userInfoWithBook)
+            res.send(result)
+
+        })
         // await client.db("admin").command({ ping: 1 });
         // console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
