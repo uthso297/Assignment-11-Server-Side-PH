@@ -92,6 +92,23 @@ async function run() {
             }
         });
 
+        app.post('/borrowed/:id/return', async (req, res) => {
+            const id = req.params.id;
+            console.log(id)
+            try {
+                const result = await booksColllection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $inc: { quantity: 1 } }
+                );
+                res.send(result)
+
+            } catch (error) {
+                res.status(500).send('Error return book.');
+                console.log(error)
+            }
+        });
+
+
         app.get('/borrow', async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
@@ -100,8 +117,21 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/borrow', async (req, res) => {
+        app.delete('/borrow/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await borrowColllection.deleteOne(query);
+            res.send(result);
+        })
+
+        app.post('/borrow/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const customBookId = new ObjectId(id); // Replace with your custom ID
+
+            // Add the custom book id to userInfoWithBook object
             const userInfoWithBook = req.body;
+            userInfoWithBook._id = customBookId;
             console.log(userInfoWithBook)
             const result = await borrowColllection.insertOne(userInfoWithBook)
             res.send(result)
