@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
@@ -31,6 +32,15 @@ async function run() {
         const database = client.db("libraryDB");
         const booksColllection = database.collection("books");
         const borrowColllection = database.collection("borrowedBooks");
+
+        //auth related api
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.JWT_SECRET, {
+                expiresIn: '1h'
+            })
+            res.send(token)
+        })
 
         app.get('/allBooks', async (req, res) => {
             const cursor = booksColllection.find();
@@ -129,7 +139,6 @@ async function run() {
             console.log(id);
             const customBookId = new ObjectId(id); // Replace with your custom ID
 
-            // Add the custom book id to userInfoWithBook object
             const userInfoWithBook = req.body;
             userInfoWithBook._id = customBookId;
             console.log(userInfoWithBook)
