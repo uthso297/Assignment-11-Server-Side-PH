@@ -14,6 +14,28 @@ app.use(cors({
     credentials: true
 }));
 
+const logger = (req, res, next) => {
+    console.log('inside the logger');
+    next();
+}
+
+const verifyToken = (req, res, next) => {
+    console.log('inside verify token');
+    console.log('cok cok cookies: ', req.cookies);
+    const token = req?.cookies?.token
+    if (!token) {
+        return res.status(401).send({ message: 'Unauthorized access' })
+    }
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: 'Unauthorized access' })
+        }
+        req.user = decoded;
+        next();
+    })
+
+}
+
 const port = process.env.PORT || 5000;
 
 
@@ -42,7 +64,7 @@ async function run() {
         app.post('/jwt', async (req, res) => {
             const user = req.body;
             const token = jwt.sign(user, process.env.JWT_SECRET, {
-                expiresIn: '1h'
+                expiresIn: '5h'
             })
             res
                 .cookie('token', token, {
@@ -130,10 +152,12 @@ async function run() {
         });
 
 
-        app.get('/borrow', async (req, res) => {
-            console.log('cok cok cookies: ', req.cookies);
+        app.get('/borrow', verifyToken, async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: 'Forbiden access' })
+            }
             const cursor = borrowColllection.find(query);
             const result = await cursor.toArray();
             res.send(result)
