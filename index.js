@@ -10,7 +10,11 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: [
+        'http://localhost:5173',
+        'https://library-management-syste-a1fc2.web.app',
+        'https://library-management-syste-a1fc2.firebaseapp.com'
+    ],
     credentials: true
 }));
 
@@ -53,7 +57,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
         // Send a ping to confirm a successful connection
 
         const database = client.db("libraryDB");
@@ -69,9 +73,19 @@ async function run() {
             res
                 .cookie('token', token, {
                     httpOnly: true,
-                    secure: false,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict'
 
                 })
+                .send({ success: true })
+        })
+
+        app.post('/logout', (req, res) => {
+            res.clearCookie('token', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict'
+            })
                 .send({ success: true })
         })
 
@@ -135,12 +149,12 @@ async function run() {
             }
         });
 
-        app.post('/borrowed/:id/return', async (req, res) => {
-            const id = req.params.id;
-            console.log(id)
+        app.post('/borrowed/:title/return', async (req, res) => {
+            const title = req.params.title;
+            console.log(title)
             try {
                 const result = await booksColllection.updateOne(
-                    { _id: new ObjectId(id) },
+                    { title: title },
                     { $inc: { quantity: 1 } }
                 );
                 res.send(result)
@@ -170,13 +184,13 @@ async function run() {
             res.send(result);
         })
 
-        app.post('/borrow/:id', async (req, res) => {
-            const id = req.params.id;
-            console.log(id);
-            const customBookId = new ObjectId(id); // Replace with your custom ID
+        app.post('/borrow', async (req, res) => {
+            // const id = req.params.id;
+            // console.log(id);
+            // const customBookId = new ObjectId(id); // Replace with your custom ID
 
             const userInfoWithBook = req.body;
-            userInfoWithBook._id = customBookId;
+            // userInfoWithBook._id = customBookId;
             console.log(userInfoWithBook)
             const result = await borrowColllection.insertOne(userInfoWithBook)
             res.send(result)
