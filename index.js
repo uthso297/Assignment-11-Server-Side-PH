@@ -2,12 +2,17 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
 
+app.use(cookieParser());
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5173'],
+    credentials: true
+}));
 
 const port = process.env.PORT || 5000;
 
@@ -39,7 +44,13 @@ async function run() {
             const token = jwt.sign(user, process.env.JWT_SECRET, {
                 expiresIn: '1h'
             })
-            res.send(token)
+            res
+                .cookie('token', token, {
+                    httpOnly: true,
+                    secure: false,
+
+                })
+                .send({ success: true })
         })
 
         app.get('/allBooks', async (req, res) => {
@@ -120,6 +131,7 @@ async function run() {
 
 
         app.get('/borrow', async (req, res) => {
+            console.log('cok cok cookies: ', req.cookies);
             const email = req.query.email;
             const query = { email: email }
             const cursor = borrowColllection.find(query);
